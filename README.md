@@ -30,19 +30,24 @@
 ```
 KuiklyWidgetGrid/
 ├── widgetgrid/                    # 📦 组件库模块（可独立发布到 Maven）
-│   ├── build.gradle.kts
+│   ├── build.gradle.kts           # 标准 KMP 构建配置
+│   ├── build.ohos.gradle.kts      # 鸿蒙构建配置（ohosArm64）
 │   └── src/commonMain/kotlin/com/wwwcg/kuikly/widgetgrid/
 │       ├── WidgetGridConfig.kt    # 网格配置
 │       ├── WidgetGridItemData.kt  # 卡片数据基类
 │       └── WidgetGrid.kt         # 主组件 + 扩展函数
 │
 ├── shared/                        # 📱 Demo 模块（使用示例）
+│   ├── build.gradle.kts           # 标准 KMP 构建配置
+│   ├── build.ohos.gradle.kts      # 鸿蒙构建配置
 │   └── src/commonMain/kotlin/.../demo/
 │       └── WidgetGridDemoPage.kt  # 完整使用示例
 │
 ├── androidApp/                    # Android 宿主应用
 ├── iosApp/                        # iOS 宿主应用
-└── settings.gradle.kts
+├── ohosApp/                       # HarmonyOS 宿主应用
+├── settings.gradle.kts            # 标准 KMP settings
+└── settings.ohos.gradle.kts       # 鸿蒙 settings（使用 build.ohos.gradle.kts）
 ```
 
 ## 🚀 快速接入
@@ -366,13 +371,13 @@ cardContent { item ->
 
 ## ⚠️ 平台差异说明
 
-| 行为 | iOS | Android |
-|------|-----|---------|
-| 删除动画 | ✅ 其他卡片平滑过渡到新位置 | ⚡ 直接删除，无位置过渡动画 |
-| 拖拽动画 | ✅ 弹性动画（springEaseInOut） | ✅ 弹性动画（springEaseInOut） |
-| 抖动动画 | ✅ 正常 | ✅ 正常 |
+| 行为 | iOS | Android | HarmonyOS | macOS | Web(JS) |
+|------|-----|---------|-----------|-------|---------|
+| 删除动画 | ✅ 其他卡片平滑过渡到新位置 | ⚡ 直接删除，无位置过渡动画 | ⚡ 同 Android | ✅ 同 iOS | ✅ 同 iOS |
+| 拖拽动画 | ✅ 弹性动画（springEaseInOut） | ✅ 弹性动画 | ✅ 弹性动画 | ✅ 弹性动画 | ✅ 弹性动画 |
+| 抖动动画 | ✅ 正常 | ✅ 正常 | ✅ 正常 | ✅ 正常 | ✅ 正常 |
 
-> Android 删除时不使用位置过渡动画，是为了避免抖动动画与位移动画在该平台上的冲突。
+> Android / HarmonyOS 删除时不使用位置过渡动画，是为了避免抖动动画与位移动画在该平台上的冲突。
 
 ## 📋 注意事项
 
@@ -389,6 +394,29 @@ cardContent { item ->
 4. **gridWidth**：必须设置 `gridWidth`，组件需要此值计算卡片宽度和布局。通常为 `pagerData.pageViewWidth - 左右 padding`。
 
 5. **Scroller 包裹**：`WidgetGrid` 本身不包含滚动容器，需要业务方用 `Scroller` 包裹，以支持内容超出屏幕时滚动。
+
+## 🔨 构建说明
+
+本项目采用**双构建配置**，分别对应标准 KMP 平台和鸿蒙平台：
+
+| 构建目标 | settings 文件 | build 文件 | 支持平台 |
+|----------|--------------|------------|----------|
+| 标准 KMP | `settings.gradle.kts` | `build.gradle.kts` | Android、iOS、macOS、Web(JS) |
+| 鸿蒙 | `settings.ohos.gradle.kts` | `build.ohos.gradle.kts` | Android、iOS、HarmonyOS |
+
+**标准构建：**
+
+```bash
+./gradlew :widgetgrid:build
+```
+
+**鸿蒙构建：**
+
+```bash
+./gradlew -c settings.ohos.gradle.kts :widgetgrid:build
+```
+
+> 鸿蒙构建使用独立的 Kotlin 版本（`2.0.21-KBA-010`）和 Kuikly OHOS 版本，通过 `settings.ohos.gradle.kts` 指定各模块使用 `build.ohos.gradle.kts` 作为构建脚本。
 
 ## 📄 License
 
