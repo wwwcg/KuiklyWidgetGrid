@@ -170,7 +170,7 @@ internal class RouterPage : BasePager() {
                 Text {
                     attr {
                         fontSize(20f)
-                        text("ImageAdapter基准测试")
+                        text("拖动排序卡片组件")
                         textDecorationUnderLine()
                         backgroundLinearGradient(
                             Direction.TO_RIGHT,
@@ -181,7 +181,7 @@ internal class RouterPage : BasePager() {
                 }
                 event {
                     click {
-                        ctx.jumpPage("image_adapter")
+                        ctx.jumpPage("WidgetGridDemoPage")
                     }
                 }
             }
