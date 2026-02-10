@@ -36,7 +36,7 @@ open class WidgetGridItemData(scope: PagerScope) : BaseObject(), PagerScope by s
     internal var isDragging: Boolean by observable(false)
     internal var needsAnimation: Boolean by observable(false)
     internal var animationKey: Int by observable(0)
-    internal var shakeAngle: Float by observable(0f)
+    internal var shakeAngle: Float = 0f
     internal var shakeKey: Int by observable(0)
     internal var isTouching: Boolean by observable(false)
     internal var longPressCallback: CallbackRef? = null
