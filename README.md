@@ -62,7 +62,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("io.github.wwwcg:widgetgrid:1.0.0")
+                implementation("io.github.wwwcg:widgetgrid:1.0.1")
             }
         }
     }
@@ -73,7 +73,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("io.github.wwwcg:widgetgrid:1.0.0-ohos")
+                implementation("io.github.wwwcg:widgetgrid:1.0.1-ohos")
             }
         }
     }
@@ -440,8 +440,8 @@ cardContent { item ->
 
 | Maven GAV | 适用场景 |
 |-----------|---------|
-| `io.github.wwwcg:widgetgrid:1.0.0` | 标准 KMP 项目（Android / iOS / macOS / Web） |
-| `io.github.wwwcg:widgetgrid:1.0.0-ohos` | 鸿蒙项目（Android / iOS / HarmonyOS） |
+| `io.github.wwwcg:widgetgrid:1.0.1` | 标准 KMP 项目（Android / iOS / macOS / Web） |
+| `io.github.wwwcg:widgetgrid:1.0.1-ohos` | 鸿蒙项目（Android / iOS / HarmonyOS） |
 
 ### 发布脚本
 
