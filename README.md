@@ -2,6 +2,18 @@
 
 一个基于 [KuiklyUI](https://github.com/Tencent-TDS/KuiklyUI) 的卡片式拖动排序组件，类似 iPhone 负一屏的小组件管理体验。
 
+## 📸 效果预览
+
+<p align="center">
+  <img src="screenshots/normal_mode.png" width="280" alt="普通模式" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="screenshots/edit_mode.png" width="280" alt="编辑模式" />
+</p>
+
+<p align="center">
+  <em>左：普通模式 — 支持 1×1 / 2×1 多尺寸卡片混排&nbsp;&nbsp;&nbsp;&nbsp;右：编辑模式 — 长按进入，支持拖拽排序、删除和添加</em>
+</p>
+
 ## ✨ 功能特性
 
 - **多尺寸卡片** — 支持 1×1 和 2×1 两种网格占位
