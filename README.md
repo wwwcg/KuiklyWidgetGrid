@@ -37,6 +37,20 @@ KuiklyWidgetGrid/
 
 ### 1. 添加依赖
 
+**Maven Central（推荐）：**
+
+```kotlin
+kotlin {
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("io.github.wwwcg:widgetgrid:1.0.0")
+            }
+        }
+    }
+}
+```
+
 **本地模块依赖（开发阶段）：**
 
 在 `settings.gradle.kts` 中：
@@ -57,12 +71,6 @@ kotlin {
         }
     }
 }
-```
-
-**Maven 远程依赖（发布后）：**
-
-```kotlin
-implementation("com.wwwcg.kuikly:widgetgrid:<version>")
 ```
 
 ### 2. 定义卡片数据

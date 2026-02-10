@@ -38,3 +38,6 @@ Kotlin-js-store
 *.xcbkptlist
 *.pyc
 .kotlin
+
+# Build artifacts
+*.zip
