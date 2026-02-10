@@ -234,7 +234,7 @@ class MyWidgetPage : BasePager() {
 | `cardBackgroundColor` | `Color` | `0xFF2C2C2E` | 卡片默认背景色 |
 | `cardBorderRadius` | `Float` | `16f` | 卡片圆角半径（dp） |
 | `deleteButtonSize` | `Float` | `24f` | 删除按钮尺寸（dp） |
-| `deleteButtonOffset` | `Float` | `-8f` | 删除按钮相对左上角偏移（dp） |
+| `deleteButtonOffset` | `Float` | `-8f` | 删除按钮相对左上角偏移（dp），负值向外延伸 |
 | `deleteButtonColor` | `Color` | `0xFFFF3B30` | 删除按钮背景色 |
 
 ### WidgetGridItemData — 卡片数据基类

@@ -623,16 +623,18 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                 }
 
                 vforIndex({ ctx.cardList }) { cardData, index, _ ->
-                    // 外层包装：绝对定位 + overflow 允许删除按钮溢出
+                    // 删除按钮超出卡片边界的距离（用于扩展外层 wrapper 避免裁剪）
+                    val deleteOverflow = max(0f, -ctx.config.deleteButtonOffset)
+
+                    // 外层包装：扩展尺寸以完整容纳删除按钮，避免 overflow 裁剪和点击失效
                     View {
-                        // 基础定位
+                        // 基础定位（向左上偏移 deleteOverflow，尺寸也相应扩展）
                         attr {
                             val currentIndex = ctx.cardList.indexOf(cardData)
                             val pos = if (currentIndex >= 0) ctx.calculateCardPosition(currentIndex) else GridPosition(0f, 0f, 0, 0)
-                            absolutePosition(top = pos.y, left = pos.x)
-                            size(ctx.getItemWidth(cardData), ctx.config.cardHeight)
+                            absolutePosition(top = pos.y - deleteOverflow, left = pos.x - deleteOverflow)
+                            size(ctx.getItemWidth(cardData) + deleteOverflow, ctx.config.cardHeight + deleteOverflow)
                             zIndex(if (cardData.isDragging) 100 else 0)
-                            overflow(true)
                         }
 
                         // 变换和动画
@@ -674,10 +676,10 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                             }
                         }
 
-                        // 卡片主体（带背景和圆角）
+                        // 卡片主体（带背景和圆角，向内缩进 deleteOverflow 留出删除按钮空间）
                         View {
                             attr {
-                                absolutePosition(top = 0f, left = 0f, right = 0f, bottom = 0f)
+                                absolutePosition(top = deleteOverflow, left = deleteOverflow, right = 0f, bottom = 0f)
                                 backgroundColor(ctx.config.cardBackgroundColor)
                                 borderRadius(ctx.config.cardBorderRadius)
                                 opacity(if (cardData.isTouching && !ctx.attr.editing) 0.7f else 1f)
@@ -687,14 +689,11 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                             ctx.attr._cardContentBuilder?.invoke(this, cardData)
                         }
 
-                        // 编辑模式下的删除按钮
+                        // 编辑模式下的删除按钮（定位在 wrapper 的 (0,0)，完全在 bounds 内，不会被裁剪）
                         vif({ ctx.attr.editing }) {
                             View {
                                 attr {
-                                    absolutePosition(
-                                        top = ctx.config.deleteButtonOffset,
-                                        left = ctx.config.deleteButtonOffset
-                                    )
+                                    absolutePosition(top = 0f, left = 0f)
                                     size(ctx.config.deleteButtonSize, ctx.config.deleteButtonSize)
                                     backgroundColor(ctx.config.deleteButtonColor)
                                     borderRadius(ctx.config.deleteButtonSize / 2)

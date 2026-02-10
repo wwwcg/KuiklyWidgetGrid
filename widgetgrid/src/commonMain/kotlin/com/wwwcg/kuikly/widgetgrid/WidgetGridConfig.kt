@@ -20,7 +20,7 @@ import com.tencent.kuikly.core.base.Color
  * @property cardBackgroundColor 卡片默认背景色
  * @property cardBorderRadius 卡片圆角半径（dp），默认 16
  * @property deleteButtonSize 删除按钮尺寸（dp），默认 24
- * @property deleteButtonOffset 删除按钮相对卡片左上角的偏移（dp），默认 -8
+ * @property deleteButtonOffset 删除按钮相对卡片左上角的偏移（dp），负值表示向外延伸，默认 -8
  * @property deleteButtonColor 删除按钮背景色
  */
 data class WidgetGridConfig(
