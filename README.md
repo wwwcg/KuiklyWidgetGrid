@@ -57,6 +57,7 @@ KuiklyWidgetGrid/
 **Maven Central（推荐）：**
 
 ```kotlin
+// 标准 KMP 项目（Android / iOS / macOS / Web）
 kotlin {
     sourceSets {
         val commonMain by getting {
@@ -66,14 +67,29 @@ kotlin {
         }
     }
 }
+
+// 鸿蒙 (HarmonyOS) 项目
+kotlin {
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("io.github.wwwcg:widgetgrid:1.0.0-ohos")
+            }
+        }
+    }
+}
 ```
+
+> ⚠️ **鸿蒙项目必须使用 `-ohos` 后缀的版本。** 这是因为鸿蒙构建链使用了不同的 Kotlin 编译器版本（`2.0.21-KBA-010`）和 Kuikly OHOS 专用核心库，与标准 KMP 产物不兼容。这与 Kuikly 核心库自身的发布策略一致。
 
 **本地模块依赖（开发阶段）：**
 
-在 `settings.gradle.kts` 中：
+在 `settings.gradle.kts`（标准）或 `settings.ohos.gradle.kts`（鸿蒙）中：
 
 ```kotlin
 include(":widgetgrid")
+// 鸿蒙配置中还需指定构建文件：
+// project(":widgetgrid").buildFileName = "build.ohos.gradle.kts"
 ```
 
 在业务模块的 `build.gradle.kts` 中：
@@ -399,10 +415,10 @@ cardContent { item ->
 
 本项目采用**双构建配置**，分别对应标准 KMP 平台和鸿蒙平台：
 
-| 构建目标 | settings 文件 | build 文件 | 支持平台 |
-|----------|--------------|------------|----------|
-| 标准 KMP | `settings.gradle.kts` | `build.gradle.kts` | Android、iOS、macOS、Web(JS) |
-| 鸿蒙 | `settings.ohos.gradle.kts` | `build.ohos.gradle.kts` | Android、iOS、HarmonyOS |
+| 构建目标 | settings 文件 | build 文件 | Kotlin 版本 | Kuikly 版本 | 支持平台 | 发布版本号 |
+|----------|--------------|------------|------------|------------|----------|-----------|
+| 标准 KMP | `settings.gradle.kts` | `build.gradle.kts` | `2.1.21` | `2.15.2-2.1.21` | Android、iOS、macOS、Web(JS) | `x.y.z` |
+| 鸿蒙 | `settings.ohos.gradle.kts` | `build.ohos.gradle.kts` | `2.0.21-KBA-010` | `2.15.2-2.0.21-ohos` | Android、iOS、HarmonyOS | `x.y.z-ohos` |
 
 **标准构建：**
 
@@ -416,7 +432,37 @@ cardContent { item ->
 ./gradlew -c settings.ohos.gradle.kts :widgetgrid:build
 ```
 
-> 鸿蒙构建使用独立的 Kotlin 版本（`2.0.21-KBA-010`）和 Kuikly OHOS 版本，通过 `settings.ohos.gradle.kts` 指定各模块使用 `build.ohos.gradle.kts` 作为构建脚本。
+> **为什么需要两套构建？** 鸿蒙 (HarmonyOS) 的 Kotlin 编译器插件（`2.0.21-KBA-010`）是专门的 fork，与标准 Kotlin `2.1.21` 编译出的产物不兼容。Kuikly 核心库自身也是分版本发布的（`2.15.2-2.1.21` vs `2.15.2-2.0.21-ohos`），因此基于 Kuikly 的组件库也必须分别构建和发布。
+
+### 版本对应关系
+
+每次发版需要同时发布两个版本：
+
+| Maven GAV | 适用场景 |
+|-----------|---------|
+| `io.github.wwwcg:widgetgrid:1.0.0` | 标准 KMP 项目（Android / iOS / macOS / Web） |
+| `io.github.wwwcg:widgetgrid:1.0.0-ohos` | 鸿蒙项目（Android / iOS / HarmonyOS） |
+
+### 发布脚本
+
+项目提供了一键构建发布脚本 `publish.sh`，支持通过 [Maven Central API](https://central.sonatype.com/api-doc) 自动上传：
+
+```bash
+# 构建全部（标准 + 鸿蒙），不上传
+./publish.sh
+
+# 仅构建标准版 / 鸿蒙版
+./publish.sh standard
+./publish.sh ohos
+
+# 构建 + 自动上传到 Maven Central
+./publish.sh --upload
+
+# 跳过构建，仅上传已有的 bundle
+./publish.sh --upload-only
+```
+
+> API 上传需要在 `~/.gradle/gradle.properties` 中配置 Sonatype Token，详见 `publish.sh` 中的注释。
 
 ## 📄 License
 
