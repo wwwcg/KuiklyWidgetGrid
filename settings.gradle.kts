@@ -25,5 +25,6 @@ dependencyResolutionManagement {
 rootProject.name = "KuiklyWidgetGrid"
 include(":androidApp")
 include(":shared")
+include(":widgetgrid")
 include(":h5App")
 include(":miniApp")

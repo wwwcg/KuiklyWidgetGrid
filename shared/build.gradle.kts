@@ -39,6 +39,8 @@ kotlin {
     iosX64()
     iosArm64()
     iosSimulatorArm64()
+    macosX64()
+    macosArm64()
 
     cocoapods {
         summary = "Some description for the Shared Module"
@@ -60,7 +62,7 @@ kotlin {
             dependencies {
                 implementation("com.tencent.kuikly-open:core:${Version.getKuiklyVersion()}")
                 implementation("com.tencent.kuikly-open:core-annotations:${Version.getKuiklyVersion()}")
-
+                implementation(project(":widgetgrid"))
             }
         }
         val commonTest by getting {
