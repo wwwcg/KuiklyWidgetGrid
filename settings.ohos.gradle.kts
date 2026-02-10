@@ -28,4 +28,6 @@ rootProject.buildFileName = buildFileName
 
 include(":androidApp")
 include(":shared")
+include(":widgetgrid")
 project(":shared").buildFileName = buildFileName
+project(":widgetgrid").buildFileName = buildFileName
