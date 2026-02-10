@@ -48,7 +48,7 @@ kotlin {
 }
 
 group = "io.github.wwwcg"
-version = "1.0.0"
+version = "1.0.0-ohos"
 
 // ==================== Maven Central Publishing ====================
 
