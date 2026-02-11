@@ -53,6 +53,12 @@ class WidgetGridAttr : ComposeAttr() {
     /** 卡片内容构建器，业务方在此渲染每个卡片的内容 */
     internal var _cardContentBuilder: (ViewContainer<*, *>.(WidgetGridItemData) -> Unit)? = null
 
+    /** 删除按钮自定义构建器，替换默认的删除按钮样式 */
+    internal var _deleteButtonBuilder: (ViewContainer<*, *>.(WidgetGridItemData) -> Unit)? = null
+
+    /** 尺寸切换按钮自定义构建器，替换默认的 resize 按钮样式 */
+    internal var _resizeButtonBuilder: (ViewContainer<*, *>.(WidgetGridItemData) -> Unit)? = null
+
     /**
      * 设置卡片内容构建器
      *
@@ -69,6 +75,42 @@ class WidgetGridAttr : ComposeAttr() {
      */
     fun cardContent(builder: ViewContainer<*, *>.(WidgetGridItemData) -> Unit) {
         _cardContentBuilder = builder
+    }
+
+    /**
+     * 自定义删除按钮内容（替换默认的红色圆形按钮）
+     *
+     * 注意：仅替换按钮内部内容，外层容器的定位和点击事件由组件管理。
+     * 如需调整按钮尺寸和偏移，请通过 [WidgetGridConfig.deleteButtonSize] 和
+     * [WidgetGridConfig.deleteButtonOffset] 配置。
+     *
+     * 示例：
+     * ```
+     * deleteButtonContent { item ->
+     *     Image { attr { src("delete_icon.png"); size(20f, 20f) } }
+     * }
+     * ```
+     */
+    fun deleteButtonContent(builder: ViewContainer<*, *>.(WidgetGridItemData) -> Unit) {
+        _deleteButtonBuilder = builder
+    }
+
+    /**
+     * 自定义尺寸切换按钮内容（替换默认的蓝色圆形按钮）
+     *
+     * 注意：仅替换按钮内部内容，外层容器的定位和点击事件由组件管理。
+     * 如需调整按钮尺寸和偏移，请通过 [WidgetGridConfig.resizeButtonSize] 和
+     * [WidgetGridConfig.resizeButtonOffset] 配置。
+     *
+     * 示例：
+     * ```
+     * resizeButtonContent { item ->
+     *     Image { attr { src("resize_icon.png"); size(20f, 20f) } }
+     * }
+     * ```
+     */
+    fun resizeButtonContent(builder: ViewContainer<*, *>.(WidgetGridItemData) -> Unit) {
+        _resizeButtonBuilder = builder
     }
 }
 
@@ -154,6 +196,7 @@ class WidgetGridEvent : ComposeEvent() {
  * - 长按进入编辑态（抖动效果）
  * - 编辑态下删除卡片
  * - 卡片内容由业务方自定义
+ * - 删除按钮和尺寸切换按钮支持自定义内容
  *
  * 使用方式：
  * ```
@@ -794,8 +837,10 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                                 attr {
                                     absolutePosition(top = ctx.topOverflow - ctx.leftOverflow, left = 0f)
                                     size(ctx.config.deleteButtonSize, ctx.config.deleteButtonSize)
-                                    backgroundColor(ctx.config.deleteButtonColor)
-                                    borderRadius(ctx.config.deleteButtonSize / 2)
+                                    if (ctx.attr._deleteButtonBuilder == null) {
+                                        backgroundColor(ctx.config.deleteButtonColor)
+                                        borderRadius(ctx.config.deleteButtonSize / 2)
+                                    }
                                     allCenter()
                                 }
                                 event {
@@ -804,12 +849,16 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                                         ctx.deleteCard(cardData)
                                     }
                                 }
-                                Text {
-                                    attr {
-                                        text("−")
-                                        fontSize(18f)
-                                        fontWeightBold()
-                                        color(Color.WHITE)
+                                if (ctx.attr._deleteButtonBuilder != null) {
+                                    ctx.attr._deleteButtonBuilder?.invoke(this, cardData)
+                                } else {
+                                    Text {
+                                        attr {
+                                            text("−")
+                                            fontSize(18f)
+                                            fontWeightBold()
+                                            color(Color.WHITE)
+                                        }
                                     }
                                 }
                             }
@@ -821,8 +870,10 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                                 attr {
                                     absolutePosition(top = ctx.topOverflow - ctx.rightOverflow, right = 0f)
                                     size(ctx.config.resizeButtonSize, ctx.config.resizeButtonSize)
-                                    backgroundColor(ctx.config.resizeButtonColor)
-                                    borderRadius(ctx.config.resizeButtonSize / 2)
+                                    if (ctx.attr._resizeButtonBuilder == null) {
+                                        backgroundColor(ctx.config.resizeButtonColor)
+                                        borderRadius(ctx.config.resizeButtonSize / 2)
+                                    }
                                     allCenter()
                                 }
                                 event {
@@ -832,12 +883,16 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                                         ctx.resizeCard(cardData, newSpan)
                                     }
                                 }
-                                Text {
-                                    attr {
-                                        text("↔")
-                                        fontSize(14f)
-                                        fontWeightBold()
-                                        color(Color.WHITE)
+                                if (ctx.attr._resizeButtonBuilder != null) {
+                                    ctx.attr._resizeButtonBuilder?.invoke(this, cardData)
+                                } else {
+                                    Text {
+                                        attr {
+                                            text("↔")
+                                            fontSize(14f)
+                                            fontWeightBold()
+                                            color(Color.WHITE)
+                                        }
                                     }
                                 }
                             }

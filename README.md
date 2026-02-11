@@ -22,6 +22,7 @@
 - **编辑模式** — 长按进入编辑态，卡片抖动提示可编辑
 - **删除卡片** — 编辑态下点击删除按钮移除卡片（iOS 带位置过渡动画）
 - **自定义内容** — 卡片外观完全由业务方自定义，组件只负责布局和交互
+- **自定义按钮** — 删除按钮和尺寸切换按钮支持自定义内容（如替换为图片图标）
 - **高度可配** — 列数、间距、高度、动画参数、抖动效果等均可配置
 - **跨平台** — 基于 Kotlin Multiplatform，支持 Android、iOS、HarmonyOS、macOS、Web(JS)
 
@@ -277,6 +278,10 @@ class MyWidgetPage : BasePager() {
 | `deleteButtonSize` | `Float` | `24f` | 删除按钮尺寸（dp） |
 | `deleteButtonOffset` | `Float` | `-8f` | 删除按钮相对左上角偏移（dp），负值向外延伸 |
 | `deleteButtonColor` | `Color` | `0xFFFF3B30` | 删除按钮背景色 |
+| `resizeEnabled` | `Boolean` | `false` | 是否在编辑态显示右上角尺寸切换按钮 |
+| `resizeButtonSize` | `Float` | `24f` | 切换按钮尺寸（dp） |
+| `resizeButtonOffset` | `Float` | `-8f` | 切换按钮相对右上角偏移（dp），负值向外延伸 |
+| `resizeButtonColor` | `Color` | `0xFF007AFF` | 切换按钮背景色 |
 
 ### WidgetGridItemData — 卡片数据基类
 
@@ -295,6 +300,8 @@ class MyWidgetPage : BasePager() {
 | `editing` | `Boolean` | 编辑模式开关（响应式，外部控制） |
 | `gridWidth` | `Float` | 网格可用宽度（dp） |
 | `cardContent { }` | 函数 | 卡片内容构建器，接收 `WidgetGridItemData` 参数 |
+| `deleteButtonContent { }` | 函数 | 自定义删除按钮内容，替换默认的红色圆形按钮 |
+| `resizeButtonContent { }` | 函数 | 自定义尺寸切换按钮内容，替换默认的蓝色圆形按钮 |
 
 ### WidgetGridEvent — 组件事件
 
@@ -303,6 +310,8 @@ class MyWidgetPage : BasePager() {
 | `onEditingChanged` | `(Boolean) -> Unit` | 编辑状态变化（如长按触发进入编辑态） |
 | `onReorder` | `(fromIndex: Int, toIndex: Int) -> Unit` | 卡片拖拽排序完成 |
 | `onDelete` | `(WidgetGridItemData) -> Unit` | 卡片被删除 |
+| `onCardClick` | `(WidgetGridItemData) -> Unit` | 非编辑态下点击卡片 |
+| `onResize` | `(item, oldSpanX, newSpanX) -> Unit` | 卡片尺寸切换 |
 
 ### WidgetGridView — 视图方法（通过 ViewRef 调用）
 
@@ -338,6 +347,48 @@ config = WidgetGridConfig(
     deleteButtonOffset = -10f,
 )
 ```
+
+### 自定义删除/尺寸切换按钮
+
+通过 `deleteButtonContent` 和 `resizeButtonContent` 可以完全替换默认按钮的内部内容（如换成图片图标）。外层容器的定位、尺寸和点击事件仍由组件管理。
+
+```kotlin
+WidgetGrid {
+    attr {
+        config = WidgetGridConfig(
+            resizeEnabled = true,
+            deleteButtonSize = 28f,
+            resizeButtonSize = 28f,
+        )
+        gridWidth = pagerData.pageViewWidth - 32f
+        editing = ctx.isEditing
+
+        cardContent { item -> /* ... */ }
+
+        // 替换删除按钮为自定义图标
+        deleteButtonContent { item ->
+            Image {
+                attr {
+                    src("delete_icon.png")
+                    size(28f, 28f)
+                }
+            }
+        }
+
+        // 替换尺寸切换按钮为自定义图标
+        resizeButtonContent { item ->
+            Image {
+                attr {
+                    src("resize_icon.png")
+                    size(28f, 28f)
+                }
+            }
+        }
+    }
+}
+```
+
+> **注意：** 使用自定义 builder 时，默认的 `backgroundColor` 和 `borderRadius` 不会应用，按钮外观完全由业务方控制。按钮尺寸和偏移仍通过 `WidgetGridConfig` 的对应参数配置。
 
 ### 关闭抖动效果
 

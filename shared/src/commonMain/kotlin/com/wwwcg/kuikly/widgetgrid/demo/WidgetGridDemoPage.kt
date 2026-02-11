@@ -46,7 +46,7 @@ internal class WidgetGridDemoPage : BasePager() {
     private val gridConfig = WidgetGridConfig(
         columnCount = 3,
         cardHeight = 100f,
-        cardSpacing = 12f,
+        cardSpacing = 20f,
         resizeEnabled = true,
     )
 
