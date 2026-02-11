@@ -40,4 +40,9 @@ open class WidgetGridItemData(scope: PagerScope) : BaseObject(), PagerScope by s
     internal var shakeKey: Int by observable(0)
     internal var isTouching: Boolean by observable(false)
     internal var longPressCallback: CallbackRef? = null
+
+    // 点击检测辅助状态（非响应式）
+    internal var wasPanned: Boolean = false
+    internal var longPressFired: Boolean = false
+    internal var buttonClicked: Boolean = false
 }

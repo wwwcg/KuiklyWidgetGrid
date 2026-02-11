@@ -11,6 +11,7 @@ import com.tencent.kuikly.core.views.Text
 import com.tencent.kuikly.core.views.View
 import com.tencent.kuikly.core.directives.vif
 import com.tencent.kuikly.core.base.PagerScope
+import com.tencent.kuikly.core.log.KLog
 import com.wwwcg.kuikly.widgetgrid.WidgetGrid
 import com.wwwcg.kuikly.widgetgrid.WidgetGridConfig
 import com.wwwcg.kuikly.widgetgrid.WidgetGridItemData
@@ -46,6 +47,7 @@ internal class WidgetGridDemoPage : BasePager() {
         columnCount = 3,
         cardHeight = 100f,
         cardSpacing = 12f,
+        resizeEnabled = true,
     )
 
     private val horizontalPadding = 16f
@@ -203,6 +205,16 @@ internal class WidgetGridDemoPage : BasePager() {
                         }
                         onDelete { item ->
                             // 可在此处理删除后的业务逻辑
+                        }
+                        onCardClick { item ->
+                            // 非编辑态点击卡片的业务逻辑（如跳转详情页）
+                            KLog.d("WidgetGridDemoPage", "onCardClick: ${item.id}")
+                        }
+                        onResize { item, oldSpanX, newSpanX ->
+                            // 尺寸切换后更新卡片内容（如 1x1 → 2x1 显示更多信息）
+                            KLog.d("WidgetGridDemoPage", "onResize: ${item.id}, oldSpanX: $oldSpanX, newSpanX: $newSpanX")
+                            val card = item as DemoCardData
+                            card.title = if (newSpanX == 2) "${card.title} ⬛" else card.title.removeSuffix(" ⬛")
                         }
                     }
                 }

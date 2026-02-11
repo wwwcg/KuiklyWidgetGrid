@@ -82,6 +82,8 @@ class WidgetGridEvent : ComposeEvent() {
     private var _onEditingChanged: ((Boolean) -> Unit)? = null
     private var _onReorder: ((fromIndex: Int, toIndex: Int) -> Unit)? = null
     private var _onDelete: ((WidgetGridItemData) -> Unit)? = null
+    private var _onCardClick: ((WidgetGridItemData) -> Unit)? = null
+    private var _onResize: ((item: WidgetGridItemData, oldSpanX: Int, newSpanX: Int) -> Unit)? = null
 
     /** 编辑状态变化（如长按触发编辑态） */
     fun onEditingChanged(handler: (Boolean) -> Unit) {
@@ -98,6 +100,26 @@ class WidgetGridEvent : ComposeEvent() {
         _onDelete = handler
     }
 
+    /**
+     * 卡片被点击（非拖拽、非长按触发）
+     *
+     * 编辑态和非编辑态下均会触发。
+     */
+    fun onCardClick(handler: (WidgetGridItemData) -> Unit) {
+        _onCardClick = handler
+    }
+
+    /**
+     * 卡片尺寸切换（编辑态点击右上角切换按钮触发）
+     *
+     * 可在回调中根据 newSpanX 更新卡片业务数据。
+     *
+     * @param handler 回调参数：item（卡片数据）、oldSpanX（旧尺寸）、newSpanX（新尺寸）
+     */
+    fun onResize(handler: (item: WidgetGridItemData, oldSpanX: Int, newSpanX: Int) -> Unit) {
+        _onResize = handler
+    }
+
     internal fun fireEditingChanged(editing: Boolean) {
         _onEditingChanged?.invoke(editing)
     }
@@ -108,6 +130,14 @@ class WidgetGridEvent : ComposeEvent() {
 
     internal fun fireDelete(item: WidgetGridItemData) {
         _onDelete?.invoke(item)
+    }
+
+    internal fun fireCardClick(item: WidgetGridItemData) {
+        _onCardClick?.invoke(item)
+    }
+
+    internal fun fireResize(item: WidgetGridItemData, oldSpanX: Int, newSpanX: Int) {
+        _onResize?.invoke(item, oldSpanX, newSpanX)
     }
 }
 
@@ -203,6 +233,64 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
     fun setEditing(editing: Boolean) {
         setEditingInternal(editing)
         event.fireEditingChanged(editing)
+    }
+
+    /**
+     * 切换卡片尺寸（带平滑动画）
+     *
+     * 修改 [item] 的 [WidgetGridItemData.spanX]，并对受影响的卡片执行位移动画过渡。
+     *
+     * 示例：点击 1×1 切换为 2×1
+     * ```
+     * gridRef.view?.resizeCard(item, if (item.spanX == 1) 2 else 1)
+     * ```
+     *
+     * @param item 要调整尺寸的卡片
+     * @param newSpanX 新的横向占位格数
+     */
+    fun resizeCard(item: WidgetGridItemData, newSpanX: Int) {
+        val oldSpanX = item.spanX
+        if (oldSpanX == newSpanX) return
+        val index = cardList.indexOf(item)
+        if (index < 0) return
+
+        // Android 平台：直接更新，不使用位置动画（避免动画冲突）
+        if (pagerData.isAndroid) {
+            item.spanX = newSpanX
+            event.fireResize(item, oldSpanX, newSpanX)
+            return
+        }
+
+        // 其他平台：保存旧位置，更新后用 offset 动画平滑过渡
+        val oldPositions = cardList.mapIndexed { i, card ->
+            card to calculateCardPosition(i)
+        }.toMap()
+
+        item.spanX = newSpanX
+        event.fireResize(item, oldSpanX, newSpanX)
+
+        cardList.forEachIndexed { newIndex, card ->
+            val oldPos = oldPositions[card] ?: return@forEachIndexed
+            val newPos = calculateCardPosition(newIndex)
+
+            card.offsetX = oldPos.x - newPos.x
+            card.offsetY = oldPos.y - newPos.y
+            card.needsAnimation = true
+            card.animationKey++
+        }
+
+        setTimeout(16) {
+            cardList.forEach { card ->
+                card.offsetX = 0f
+                card.offsetY = 0f
+            }
+
+            setTimeout((config.dragAnimationDuration * 1000).toInt() + 50) {
+                cardList.forEach { card ->
+                    card.needsAnimation = false
+                }
+            }
+        }
     }
 
     // ==================== 配置快捷访问 ====================
@@ -609,38 +697,49 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
     override fun body(): ViewBuilder {
         val ctx = this
         return {
-            // 监听外部 editing 状态变化
+            // 根视图：负 margin 扩展 bounds 以容纳按钮溢出，确保触摸事件可达
             attr {
                 ctx.setEditingInternal(ctx.attr.editing)
+                val leftOv = max(0f, -ctx.config.deleteButtonOffset)
+                val rightOv = if (ctx.config.resizeEnabled) max(0f, -ctx.config.resizeButtonOffset) else 0f
+                val topOv = max(leftOv, rightOv)
+                width(ctx.attr.gridWidth + leftOv + rightOv)
+                marginLeft(-leftOv)
+                marginTop(-topOv)
+                marginRight(-rightOv)
             }
 
-            // 网格容器
+            // 网格容器（尺寸包含按钮溢出区域）
             View {
                 attr {
+                    val leftOv = max(0f, -ctx.config.deleteButtonOffset)
+                    val rightOv = if (ctx.config.resizeEnabled) max(0f, -ctx.config.resizeButtonOffset) else 0f
+                    val topOv = max(leftOv, rightOv)
                     val totalRows = ctx.calculateTotalRows()
-                    height(totalRows * (ctx.config.cardHeight + ctx.config.cardSpacing))
-                    width(ctx.attr.gridWidth)
+                    height(totalRows * (ctx.config.cardHeight + ctx.config.cardSpacing) + topOv)
+                    width(ctx.attr.gridWidth + leftOv + rightOv)
                 }
 
                 vforIndex({ ctx.cardList }) { cardData, index, _ ->
-                    // 删除按钮超出卡片边界的距离（用于扩展外层 wrapper 避免裁剪）
-                    val deleteOverflow = max(0f, -ctx.config.deleteButtonOffset)
+                    // 按钮超出卡片边界的距离（用于扩展外层 wrapper）
+                    val leftOverflow = max(0f, -ctx.config.deleteButtonOffset)
+                    val rightOverflow = if (ctx.config.resizeEnabled) max(0f, -ctx.config.resizeButtonOffset) else 0f
+                    val topOverflow = max(leftOverflow, rightOverflow)
 
-                    // 外层包装：扩展尺寸以完整容纳删除按钮，避免 overflow 裁剪和点击失效
+                    // 外层包装：包含卡片主体 + 按钮溢出空间
                     View {
-                        // 基础定位（向左上偏移 deleteOverflow，尺寸也相应扩展）
+                        // 基础定位（网格容器已通过负 margin 补偿，wrapper 直接用卡片位置）
                         attr {
                             val currentIndex = ctx.cardList.indexOf(cardData)
                             val pos = if (currentIndex >= 0) ctx.calculateCardPosition(currentIndex) else GridPosition(0f, 0f, 0, 0)
-                            absolutePosition(top = pos.y - deleteOverflow, left = pos.x - deleteOverflow)
-                            size(ctx.getItemWidth(cardData) + deleteOverflow, ctx.config.cardHeight + deleteOverflow)
+                            absolutePosition(top = pos.y, left = pos.x)
+                            size(ctx.getItemWidth(cardData) + leftOverflow + rightOverflow, ctx.config.cardHeight + topOverflow)
                             zIndex(if (cardData.isDragging) 100 else 0)
                         }
 
                         // 变换和动画
                         attr {
                             if (cardData.isDragging) {
-                                // 被拖拽卡片：放大 + 位移
                                 transform(
                                     scale = Scale(ctx.config.dragScaleRatio, ctx.config.dragScaleRatio),
                                     translate = Translate(
@@ -652,7 +751,6 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                                 )
                                 opacity(ctx.config.dragOpacity)
                             } else {
-                                // 非拖拽卡片：位移 + 抖动旋转
                                 transform(
                                     rotate = Rotate(cardData.shakeAngle),
                                     translate = Translate(
@@ -668,18 +766,23 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                                         cardData.animationKey
                                     )
                                 } else if (ctx.config.shakeEnabled) {
-                                    animate(
-                                        Animation.easeInOut(ctx.config.shakeAnimationDuration),
-                                        cardData.shakeKey
-                                    )
+                                    // 读取 shakeKey 建立响应式依赖，确保角度变化时 attr 块重新求值
+                                    val shakeKeyVal = cardData.shakeKey
+                                    if (!ctx.pagerData.isIOS) {
+                                        // 非 iOS：平滑抖动动画
+                                        animate(Animation.easeInOut(ctx.config.shakeAnimationDuration), shakeKeyVal)
+                                    }
+                                    // iOS：不调用 animate()，角度直接跳变模拟抖动
+                                    // 规避 iOS hitTest 在动画期间跳过子视图检测的 bug（KRView.m）
+                                    // TODO: 框架升级修复 hitTest 后移除 isIOS 判断，统一使用 animate
                                 }
                             }
                         }
 
-                        // 卡片主体（带背景和圆角，向内缩进 deleteOverflow 留出删除按钮空间）
+                        // 卡片主体（带背景和圆角，向内缩进留出按钮空间）
                         View {
                             attr {
-                                absolutePosition(top = deleteOverflow, left = deleteOverflow, right = 0f, bottom = 0f)
+                                absolutePosition(top = topOverflow, left = leftOverflow, right = rightOverflow, bottom = 0f)
                                 backgroundColor(ctx.config.cardBackgroundColor)
                                 borderRadius(ctx.config.cardBorderRadius)
                                 opacity(if (cardData.isTouching && !ctx.attr.editing) 0.7f else 1f)
@@ -689,11 +792,11 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                             ctx.attr._cardContentBuilder?.invoke(this, cardData)
                         }
 
-                        // 编辑模式下的删除按钮（定位在 wrapper 的 (0,0)，完全在 bounds 内，不会被裁剪）
+                        // 编辑模式下的删除按钮（左上角）
                         vif({ ctx.attr.editing }) {
                             View {
                                 attr {
-                                    absolutePosition(top = 0f, left = 0f)
+                                    absolutePosition(top = topOverflow - leftOverflow, left = 0f)
                                     size(ctx.config.deleteButtonSize, ctx.config.deleteButtonSize)
                                     backgroundColor(ctx.config.deleteButtonColor)
                                     borderRadius(ctx.config.deleteButtonSize / 2)
@@ -701,6 +804,7 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                                 }
                                 event {
                                     click {
+                                        cardData.buttonClicked = true
                                         ctx.deleteCard(cardData)
                                     }
                                 }
@@ -715,12 +819,45 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                             }
                         }
 
+                        // 编辑模式下的尺寸切换按钮（右上角）
+                        vif({ ctx.attr.editing && ctx.config.resizeEnabled }) {
+                            View {
+                                attr {
+                                    absolutePosition(top = topOverflow - rightOverflow, right = 0f)
+                                    size(ctx.config.resizeButtonSize, ctx.config.resizeButtonSize)
+                                    backgroundColor(ctx.config.resizeButtonColor)
+                                    borderRadius(ctx.config.resizeButtonSize / 2)
+                                    allCenter()
+                                }
+                                event {
+                                    click {
+                                        cardData.buttonClicked = true
+                                        val newSpan = if (cardData.spanX == 1) 2 else 1
+                                        ctx.resizeCard(cardData, newSpan)
+                                    }
+                                }
+                                Text {
+                                    attr {
+                                        text("↔")
+                                        fontSize(14f)
+                                        fontWeightBold()
+                                        color(Color.WHITE)
+                                    }
+                                }
+                            }
+                        }
+
                         // 触摸和拖拽事件
                         event {
                             register(EventName.TOUCH_DOWN.value) {
                                 cardData.isTouching = true
+                                cardData.wasPanned = false
+                                cardData.longPressFired = false
+                                cardData.buttonClicked = false
                                 if (!ctx.attr.editing) {
                                     cardData.longPressCallback = setTimeout(ctx.config.longPressDelay) {
+                                        cardData.longPressFired = true
+                                        cardData.longPressCallback = null
                                         ctx.onCardLongPress()
                                     }
                                 }
@@ -731,8 +868,15 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                                     clearTimeout(callback)
                                     cardData.longPressCallback = null
                                 }
+                                // 没有拖拽、没有触发长按、没有点击按钮 → 视为卡片点击
+                                if (!cardData.wasPanned && !cardData.longPressFired && !cardData.buttonClicked) {
+                                    ctx.event.fireCardClick(cardData)
+                                }
                             }
                             pan { params ->
+                                if (params.state == "start" || params.state == "move") {
+                                    cardData.wasPanned = true
+                                }
                                 if (params.state == "start") {
                                     cardData.longPressCallback?.let { callback ->
                                         clearTimeout(callback)
