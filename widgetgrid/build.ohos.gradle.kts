@@ -39,7 +39,7 @@ kotlin {
 }
 
 group = "io.github.wwwcg"
-version = "1.0.1-ohos"
+version = "1.1.0-ohos"
 
 // ==================== Maven Central Publishing ====================
 
