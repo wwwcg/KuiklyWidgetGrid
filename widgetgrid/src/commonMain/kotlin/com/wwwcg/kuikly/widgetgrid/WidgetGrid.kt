@@ -297,6 +297,13 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
 
     private val config: WidgetGridConfig get() = attr.config
 
+    /** 删除按钮向左溢出的距离 */
+    private val leftOverflow: Float get() = max(0f, -config.deleteButtonOffset)
+    /** 缩放按钮向右溢出的距离 */
+    private val rightOverflow: Float get() = if (config.resizeEnabled) max(0f, -config.resizeButtonOffset) else 0f
+    /** 按钮向上溢出的距离 */
+    private val topOverflow: Float get() = max(leftOverflow, rightOverflow)
+
     private fun getCardWidth(): Float {
         return (attr.gridWidth - config.cardSpacing * (config.columnCount - 1)) / config.columnCount
     }
@@ -700,32 +707,21 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
             // 根视图：负 margin 扩展 bounds 以容纳按钮溢出，确保触摸事件可达
             attr {
                 ctx.setEditingInternal(ctx.attr.editing)
-                val leftOv = max(0f, -ctx.config.deleteButtonOffset)
-                val rightOv = if (ctx.config.resizeEnabled) max(0f, -ctx.config.resizeButtonOffset) else 0f
-                val topOv = max(leftOv, rightOv)
-                width(ctx.attr.gridWidth + leftOv + rightOv)
-                marginLeft(-leftOv)
-                marginTop(-topOv)
-                marginRight(-rightOv)
+                width(ctx.attr.gridWidth + ctx.leftOverflow + ctx.rightOverflow)
+                marginLeft(-ctx.leftOverflow)
+                marginTop(-ctx.topOverflow)
+                marginRight(-ctx.rightOverflow)
             }
 
             // 网格容器（尺寸包含按钮溢出区域）
             View {
                 attr {
-                    val leftOv = max(0f, -ctx.config.deleteButtonOffset)
-                    val rightOv = if (ctx.config.resizeEnabled) max(0f, -ctx.config.resizeButtonOffset) else 0f
-                    val topOv = max(leftOv, rightOv)
                     val totalRows = ctx.calculateTotalRows()
-                    height(totalRows * (ctx.config.cardHeight + ctx.config.cardSpacing) + topOv)
-                    width(ctx.attr.gridWidth + leftOv + rightOv)
+                    height(totalRows * (ctx.config.cardHeight + ctx.config.cardSpacing) + ctx.topOverflow)
+                    width(ctx.attr.gridWidth + ctx.leftOverflow + ctx.rightOverflow)
                 }
 
                 vforIndex({ ctx.cardList }) { cardData, index, _ ->
-                    // 按钮超出卡片边界的距离（用于扩展外层 wrapper）
-                    val leftOverflow = max(0f, -ctx.config.deleteButtonOffset)
-                    val rightOverflow = if (ctx.config.resizeEnabled) max(0f, -ctx.config.resizeButtonOffset) else 0f
-                    val topOverflow = max(leftOverflow, rightOverflow)
-
                     // 外层包装：包含卡片主体 + 按钮溢出空间
                     View {
                         // 基础定位（网格容器已通过负 margin 补偿，wrapper 直接用卡片位置）
@@ -733,7 +729,7 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                             val currentIndex = ctx.cardList.indexOf(cardData)
                             val pos = if (currentIndex >= 0) ctx.calculateCardPosition(currentIndex) else GridPosition(0f, 0f, 0, 0)
                             absolutePosition(top = pos.y, left = pos.x)
-                            size(ctx.getItemWidth(cardData) + leftOverflow + rightOverflow, ctx.config.cardHeight + topOverflow)
+                            size(ctx.getItemWidth(cardData) + ctx.leftOverflow + ctx.rightOverflow, ctx.config.cardHeight + ctx.topOverflow)
                             zIndex(if (cardData.isDragging) 100 else 0)
                         }
 
@@ -782,7 +778,7 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                         // 卡片主体（带背景和圆角，向内缩进留出按钮空间）
                         View {
                             attr {
-                                absolutePosition(top = topOverflow, left = leftOverflow, right = rightOverflow, bottom = 0f)
+                                absolutePosition(top = ctx.topOverflow, left = ctx.leftOverflow, right = ctx.rightOverflow, bottom = 0f)
                                 backgroundColor(ctx.config.cardBackgroundColor)
                                 borderRadius(ctx.config.cardBorderRadius)
                                 opacity(if (cardData.isTouching && !ctx.attr.editing) 0.7f else 1f)
@@ -796,7 +792,7 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                         vif({ ctx.attr.editing }) {
                             View {
                                 attr {
-                                    absolutePosition(top = topOverflow - leftOverflow, left = 0f)
+                                    absolutePosition(top = ctx.topOverflow - ctx.leftOverflow, left = 0f)
                                     size(ctx.config.deleteButtonSize, ctx.config.deleteButtonSize)
                                     backgroundColor(ctx.config.deleteButtonColor)
                                     borderRadius(ctx.config.deleteButtonSize / 2)
@@ -823,7 +819,7 @@ class WidgetGridView : ComposeView<WidgetGridAttr, WidgetGridEvent>() {
                         vif({ ctx.attr.editing && ctx.config.resizeEnabled }) {
                             View {
                                 attr {
-                                    absolutePosition(top = topOverflow - rightOverflow, right = 0f)
+                                    absolutePosition(top = ctx.topOverflow - ctx.rightOverflow, right = 0f)
                                     size(ctx.config.resizeButtonSize, ctx.config.resizeButtonSize)
                                     backgroundColor(ctx.config.resizeButtonColor)
                                     borderRadius(ctx.config.resizeButtonSize / 2)
